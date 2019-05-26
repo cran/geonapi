@@ -158,6 +158,7 @@ GNUtils$POST <- function(url, path = NULL, token = NULL, cookies = NULL,
           "X-XSRF-TOKEN" = ifelse(!is.null(cookies), as.character(cookies["XSRF-TOKEN"]),""),
           "Content-type" = contentType
         ),
+        encode = "raw",
         body = content
       )
     }else{
@@ -171,6 +172,7 @@ GNUtils$POST <- function(url, path = NULL, token = NULL, cookies = NULL,
         set_cookies(
           cookies 
         ),
+        encode = "raw",
         body = content
       )
     }

@@ -58,8 +58,9 @@
 #'  \item{\code{getClassName()}}{
 #'    Retrieves the name of the class instance
 #'  }
-#'  \item{\code{insertMetadata(xml, file, group, category, stylesheet, validate)}}{
-#'    Inserts a metadata by file or XML object. If successful, returns the Geonetwork
+#'  \item{\code{insertMetadata(xml, file, geometa, group, category, stylesheet, validate)}}{
+#'    Inserts a metadata by file, XML object or \pkg{geometa} object of class
+#'    \code{ISOMetadata} or \code{ISOFeatureCatalogue}. If successful, returns the Geonetwork
 #'    metadata internal identifier (integer).
 #'  }
 #'  \item{\code{setPrivConfiguration(id, config)}}{
@@ -85,8 +86,9 @@
 #'  \item{\code{getInfoByUUID(uuid)}}{
 #'    Get a metadata Info by UUID. Returns an XML document object
 #'  }
-#'  \item{\code{updateMetadata(id, xml, file)}}{
-#'    Updates a metadata
+#'  \item{\code{updateMetadata(id, xml, file, geometa)}}{
+#'    Updates a metadata by file, XML object or \pkg{geometa} object of class
+#'    'ISOMetadata' or 'ISOFeatureCatalogue'.
 #'  }
 #'  \item{\code{deleteMetadata(id)}}{
 #'    Deletes a metadata
@@ -223,7 +225,7 @@ GNManager <- R6Class("GNManager",
         req <- GNUtils$POST(
           url = self$getUrl(),
           path = "/xml.user.login",
-          content = GNUtils$getPayloadXML(gnRequest),
+          content = gnRequest$encode(),
           contentType = "text/xml",
           verbose = self$verbose.debug
         )
@@ -264,9 +266,40 @@ GNManager <- R6Class("GNManager",
       return(class(self)[1])
     },
     
+    #getGroups
+    #---------------------------------------------------------------------------
+    getGroups = function(){
+      out <- NULL
+      self$INFO("Getting user groups...")
+      req <- GNUtils$GET(
+        url = self$getUrl(),
+        path = "/xml.info",
+        token = private$token, cookies = private$cookies,
+        user = private$user, pwd = private$pwd,
+        query = list(type = "groups"),
+        verbose = self$verbose.debug
+      )
+      if(status_code(req) == 200){
+        self$INFO("Successfully fetched user groups!")
+        xml <- GNUtils$parseResponseXML(req, "UTF-8")
+        xml.groups <- getNodeSet(xml, "//group/group")
+        out <- do.call("rbind", lapply(xml.groups, function(xml.group){
+          out.group <- data.frame(
+            id = xmlGetAttr(xml.group, "id"),
+            name = xmlValue(xmlChildren(xml.group)$name),
+            stringsAsFactors = FALSE
+          )
+          return(out.group)
+        }))
+      }else{
+        self$ERROR("Error while fetching user groups")
+      }
+      return(out)
+    },
+    
     #insertMetadata
     #---------------------------------------------------------------------------
-    insertMetadata = function(xml = NULL, file = NULL, group,
+    insertMetadata = function(xml = NULL, file = NULL, geometa = NULL, group,
                               category = NULL, stylesheet = NULL,
                               validate = FALSE){
       self$INFO("Inserting metadata ...")
@@ -280,28 +313,36 @@ GNManager <- R6Class("GNManager",
         saveXML(xml, file, encoding = "UTF-8")
       }
       if(!is.null(file)){
-        xml <- xmlParse(file)
-        data <- as(xml, "character")
+        data <- geometa::readISO19139(file = file, raw = TRUE)
         if(isTempFile) unlink(file)
-      }else{
-        stop("At least one of 'file' or 'xml' argument is required!")
       }
-      cdata <- newXMLCDataNode(data)
+      if(!is.null(geometa)){
+        if(!is(geometa, "ISOMetadata") & !is(geometa, "ISOFeatureCatalogue")){
+          stop("Object 'geometa' should be of class 'ISOMetadata' or 'ISOFeatureCatalogue")
+        }
+        data <- geometa$encode()
+      }
+      
+      if(is.null(data)){
+        stop("At least one of 'file', 'xml', or 'geometa' argument is required!")
+      }
+      
       if(is.null(category)) category <- "_none_"
       if(is.null(stylesheet)) stylesheet <- "_none_"
       gnRequest <- GNRESTRequest$new(
-        data = cdata,
+        data = data,
         group = group,
         category = category,
         stylesheet = stylesheet,
         validate = ifelse(validate, "on", "off")
       )
+
       req <- GNUtils$POST(
         url = self$getUrl(),
         path = "/xml.metadata.insert",
         token = private$token, cookies = private$cookies,
         user = private$user, pwd = private$pwd,
-        content = GNUtils$getPayloadXML(gnRequest),
+        content = gnRequest$encode(),
         contentType = "text/xml",
         verbose = self$verbose.debug
       )
@@ -380,7 +421,7 @@ GNManager <- R6Class("GNManager",
         path = "/xml.metadata.get",
         token = private$token, cookies = private$cookies,
         user = private$user, pwd = private$pwd,
-        content = GNUtils$getPayloadXML(gnRequest),
+        content = gnRequest$encode(),
         contentType = "text/xml",
         verbose = self$verbose.debug
       )
@@ -439,7 +480,7 @@ GNManager <- R6Class("GNManager",
     
     #updateMetadata
     #---------------------------------------------------------------------------
-    updateMetadata = function(id, xml = NULL, file = NULL){
+    updateMetadata = function(id, xml = NULL, file = NULL, geometa = NULL){
       
       self$INFO(sprintf("Updating metadata id = %s ...", id))
       out <- NULL
@@ -452,24 +493,30 @@ GNManager <- R6Class("GNManager",
         saveXML(xml, file, encoding = "UTF-8")
       }
       if(!is.null(file)){
-        xml <- xmlParse(file)
-        data <- as(xml, "character")
+        data <- geometa::readISO19139(file = file, raw = TRUE)
         if(isTempFile) unlink(file)
-      }else{
-        stop("At least one of 'file' or 'xml' argument is required!")
       }
-      cdata <- newXMLCDataNode(data)
+      if(!is.null(geometa)){
+        if(!is(geometa, "ISOMetadata") & !is(geometa, "ISOFeatureCatalogue")){
+          stop("Object 'geometa' should be of class 'ISOMetadata' or 'ISOFeatureCatalogue")
+        }
+        data <- geometa$encode()
+      }
+      
+      if(is.null(data)){
+        stop("At least one of 'file', 'xml', or 'geometa' argument is required!")
+      }
       
       if(self$version$value$major >= 3){
         gnRequest <- GNRESTRequest$new(
           id = id,
-          data = cdata
+          data = data
         )
       }else{
         gnRequest <- GNRESTRequest$new(
           id = id,
           version = private$getEditingMetadataVersion(id),
-          data = cdata
+          data = data
         )
       }
       
@@ -478,7 +525,7 @@ GNManager <- R6Class("GNManager",
         path = "/metadata.update.finish",
         token = private$token, cookies = private$cookies,
         user = private$user, pwd = private$pwd,
-        content = GNUtils$getPayloadXML(gnRequest),
+        content = gnRequest$encode(),
         contentType = "text/xml",
         verbose = self$verbose.debug
       )
@@ -504,7 +551,7 @@ GNManager <- R6Class("GNManager",
         path = "/xml.metadata.delete",
         token = private$token, cookies = private$cookies,
         user = private$user, pwd = private$pwd,
-        content = GNUtils$getPayloadXML(gnRequest),
+        content = gnRequest$encode(),
         contentType = "text/xml",
         verbose = self$verbose.debug
       )
@@ -535,7 +582,7 @@ GNManager <- R6Class("GNManager",
         path = "/xml.metadata.select",
         token = private$token, cookies = private$cookies,
         user = private$user, pwd = private$pwd,
-        content = GNUtils$getPayloadXML(gnSelectRequest),
+        content = gnSelectRequest$encode(),
         contentType = "text/xml",
         verbose = self$verbose.debug
       )
@@ -546,7 +593,7 @@ GNManager <- R6Class("GNManager",
         path = "/xml.metadata.batch.delete",
         token = private$token, cookies = private$cookies,
         user = private$user, pwd = private$pwd,
-        content = GNUtils$getPayloadXML(gnDeleteRequest),
+        content = gnDeleteRequest$encode(),
         contentType = "text/xml",
         verbose = self$verbose.debug
       )
