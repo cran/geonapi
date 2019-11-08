@@ -137,7 +137,8 @@ GNManager <- R6Class("GNManager",
           stop("No geonet:info XML element found")
         }
       }else{
-        self$ERROR("Error while fetching metadata version")
+        self$ERROR(sprintf("Error while fetching metadata version - %s", message_for_status(status_code(req))))
+        self$ERROR(content(req))
       }
       
       return(version)
@@ -224,7 +225,15 @@ GNManager <- R6Class("GNManager",
     login = function(user, pwd){
       
       req <- NULL
-      if(!self$basicAuth){
+      if(self$basicAuth){
+        #for newer versions >= 3
+        req <- GNUtils$POST(
+          url = self$getUrl(), path = "/info?type=me",
+          user = user, pwd = pwd, content = NULL, contentType = NULL,
+          verbose = TRUE 
+        )
+      }else{
+        #for older versions < 3
         gnRequest <- GNRESTRequest$new(username = user, password = pwd)
         req <- GNUtils$POST(
           url = self$getUrl(),
@@ -233,10 +242,25 @@ GNManager <- R6Class("GNManager",
           contentType = "text/xml",
           verbose = self$verbose.debug
         )
-      }else{
-        req <- GNUtils$GET(
-          url = self$getUrl(), path = NULL,
-          user = user, pwd = pwd, verbose = self$verbose.debug
+      }
+      
+      private$user <- user
+      private$pwd <- pwd
+      
+      req_cookies <- cookies(req)
+      cookies <- as.list(req_cookies$value)
+      names(cookies) <- req_cookies$name
+      if(length(cookies[names(cookies)=="XSRF-TOKEN"])>0){
+        private$token <- cookies[names(cookies)=="XSRF-TOKEN"][[1]]
+      }
+      cookies <- unlist(cookies[names(cookies)!="XSRF-TOKEN"])
+      private$cookies <- paste0(sapply(names(cookies), function(cookiename){paste0(cookiename,"=",cookies[[cookiename]])}),collapse=";")
+      
+      if(!is.null(private$token)){
+        req <- GNUtils$POST(
+          url = "http://34.65.110.32:8080/geonetwork/srv/eng", path = "/info?type=me",
+          user = user, pwd = pwd, token = private$token, cookies = private$cookies, content = NULL, contentType = NULL,
+          verbose = TRUE 
         )
       }
       
@@ -254,14 +278,24 @@ GNManager <- R6Class("GNManager",
         err <- "Impossible to login to GeoNetwork: Unexpected error"
         self$ERROR(err)
         stop(err)
-      }else{
-        req_cookies <- cookies(req)
-        cookies <- req_cookies$value
-        names(cookies) <- req_cookies$name
-        private$cookies <- cookies
+      }
+      
+      if(status_code(req) == 200){
         self$INFO("Successfully authenticated to GeoNetwork!\n")
       }
       return(TRUE)
+    },
+    
+    getCookies = function(){
+      return(private$cookies)
+    },
+    
+    getToken = function(){
+      return(private$token)
+    },
+    
+    getUserPwd = function(){
+      return(paste0(private$user,":", private$pwd))
     },
 
     #getClassName
@@ -355,7 +389,8 @@ GNManager <- R6Class("GNManager",
         response <- GNUtils$parseResponseXML(req)
         out <- as.integer(xpathApply(response, "//id", xmlValue)[[1]])
       }else{
-        self$ERROR("Error while inserting metadata")
+        self$ERROR(sprintf("Error while inserting metadata - %s", message_for_status(status_code(req))))
+        self$ERROR(content(req))
       }
       return(out)
     },
@@ -394,7 +429,8 @@ GNManager <- R6Class("GNManager",
         self$INFO(sprintf("Successfully set privileges for metadata id = %s!", id))
         out <- TRUE
       }else{
-        self$ERROR("Error while setting privileges")
+        self$ERROR(sprintf("Error while setting privileges - %s", message_for_status(status_code(req))))
+        self$ERROR(content(req))
       }
       return(out)
     },
@@ -453,7 +489,8 @@ GNManager <- R6Class("GNManager",
           stop("GNInfo is not yet implemented in geonapi!")
         }
       }else{
-        self$ERROR("Error while fetching metadata")
+        self$ERROR(sprintf("Error while fetching metadata - %s", message_for_status(status_code(req))))
+        self$ERROR(content(req))
       }
       return(out)
     },
@@ -539,7 +576,8 @@ GNManager <- R6Class("GNManager",
         response <- GNUtils$parseResponseXML(req)
         out <- as.integer(xpathApply(response, "//id", xmlValue)[[1]])
       }else{
-        self$ERROR("Error while updating metadata")
+        self$ERROR(sprintf("Error while updating metadata - %s", message_for_status(status_code(req))))
+        self$ERROR(content(req))
       }
       return(out)
       
@@ -565,7 +603,8 @@ GNManager <- R6Class("GNManager",
         response <- GNUtils$parseResponseXML(req)
         out <- as.integer(xpathApply(response, "//id", xmlValue)[[1]])
       }else{
-        self$ERROR("Error while deleting metadata")
+        self$ERROR(sprintf("Error while deleting metadata - %s", message_for_status(status_code(req))))
+        self$ERROR(content(req))
       }
       return(out)
     },
