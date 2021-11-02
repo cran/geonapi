@@ -24,7 +24,7 @@
 #'    This method performs a PUT request for a given \code{path} to GeoNetwork REST API,
 #'    to upload a file of name \code{filename} with given \code{contentType}
 #'  }
-#'  \item{\code{POST(url, path, token, content, contentType, verbose)}}{
+#'  \item{\code{POST(url, path, token, content, contentType, encode, verbose)}}{
 #'    This method performs a POST request for a given \code{path} to GeoNetwork REST API,
 #'    to post content of given \code{contentType}
 #'  }
@@ -53,9 +53,11 @@ GNUtils$getUserAgent <- function(){
 
 GNUtils$GET <- function(url, path = NULL, token = NULL, cookies = NULL,
                         user = NULL, pwd = NULL,
-                        query = NULL, verbose = FALSE){
+                        query = NULL, 
+                        accept = "application/json", contentType = "application/json", 
+                        verbose = FALSE){
   if(verbose){
-    req <- with_verbose(GNUtils$GET(url, path, token, cookies, user, pwd, query))
+    req <- with_verbose(GNUtils$GET(url, path, token, cookies, user, pwd, query, accept, contentType))
   }else{
     if(!is.null(path)){
       if(!grepl("^/", path)) path = paste0("/", path)
@@ -66,6 +68,8 @@ GNUtils$GET <- function(url, path = NULL, token = NULL, cookies = NULL,
         url = url,
         query = query,
         add_headers(
+          "Accept" = accept,
+          "Content-Type" = contentType,
           "User-Agent" = GNUtils$getUserAgent(),
           "Authorization" = paste("Basic", GNUtils$getUserToken(user, pwd)),
           "X-XSRF-TOKEN" = token,
@@ -77,6 +81,8 @@ GNUtils$GET <- function(url, path = NULL, token = NULL, cookies = NULL,
         url = url,
         query = query,
         add_headers(
+          "Accept" = accept,
+          "Content-Type" = contentType,
           "User-Agent" = GNUtils$getUserAgent(),
           "X-XSRF-TOKEN" = token,
           "Set-Cookie" = cookies
@@ -139,9 +145,11 @@ GNUtils$PUT <- function(url, path = NULL, token = NULL, cookies = NULL,
 
 GNUtils$POST <- function(url, path = NULL, token = NULL, cookies = NULL,
                          user = NULL, pwd = NULL,
-                         content, contentType, verbose = FALSE){
+                         content, contentType, 
+                         encode = "raw",
+                         verbose = FALSE){
   if(verbose){
-    req <- with_verbose(GNUtils$POST(url, path, token, cookies, user, pwd, content, contentType))
+    req <- with_verbose(GNUtils$POST(url, path, token, cookies, user, pwd, content, contentType, encode))
   }else{
     if(!is.null(path)){
       if(!grepl("^/", path)) path = paste0("/", path)
@@ -157,7 +165,7 @@ GNUtils$POST <- function(url, path = NULL, token = NULL, cookies = NULL,
           "X-XSRF-TOKEN" = token,
           "Set-Cookie" = cookies
         ),
-        encode = "raw",
+        encode = encode,
         body = content
       )
     }else{
@@ -169,7 +177,7 @@ GNUtils$POST <- function(url, path = NULL, token = NULL, cookies = NULL,
           "X-XSRF-TOKEN" = token,
           "Set-Cookie" = cookies
         ),
-        encode = "raw",
+        encode = encode,
         body = content
       )
     }
