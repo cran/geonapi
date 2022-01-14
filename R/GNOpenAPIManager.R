@@ -138,7 +138,7 @@ GNOpenAPIManager <- R6Class("GNOpenAPIManager",
     login = function(user, pwd){
       
       req <- GNUtils$POST(
-        url = self$getUrl(), path = "/info?type=me",
+        url = paste0(self$getUrl(), "/", self$lang), path = "/info?type=me",
         user = user, pwd = pwd, content = NULL, contentType = NULL,
         verbose = TRUE 
       )
