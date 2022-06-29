@@ -423,8 +423,75 @@ GNOpenAPIManager <- R6Class("GNOpenAPIManager",
         self$ERROR(content(req))
       }
       return(out)
+    },
+    
+    #'@description Uploads attachment
+    #'@param id metadata identifier
+    #'@param file file to upload
+    #'@param visibility public or private
+    #'@param approved object of class \code{logical}
+    #'@return a named list of the uploaded attachment, including the url, size, id and type, \code{NULL} otherwise
+    uploadAttachment = function(id, file, visibility = "public", approved = TRUE){
+      out <- NULL
+      self$INFO(sprintf("Attach file '%s' to record '%s'...", file, id))
+      path = sprintf("/api/records/%s/attachments?visibility=%s&approved=%s", id, visibility, approved) 
+      req <- GNUtils$POST(
+        url = self$getUrl(),
+        path = path,
+        token = private$getToken(), cookies = private$cookies,
+        user = private$user, 
+        pwd = private$getPwd(),
+        content = list(
+          file = httr::upload_file(file)
+        ),
+        contentType = "multipart/form-data",
+        encode = "multipart",
+        verbose = self$verbose.debug
+      )
+      if(status_code(req) == 201){
+        self$INFO("Successfully uploaded attachment!")
+        response <- content(req, "parsed")
+        out <- response
+        if(startsWith(out$url, "http://localhost:8080")){
+          out$url <- gsub("http://localhost:8080", paste0(unlist(strsplit(GN$getUrl(), "/"))[1:3],collapse="/"), out$url)
+        }
+      }else{
+        self$ERROR(sprintf("Error while uploading attachment - %s", message_for_status(status_code(req))))
+        self$ERROR(content(req))
+      }
+      return(out)
+    },
+    
+    #'@description Publishes thumbnail based on URL
+    #'@param id metadata identifier
+    #'@param url thumbnail URL
+    #'@param desc thumbnail description
+    #'@return \code{TRUE} if published, \code{FALSE} otherwise
+    publishThumbnail = function(id, url, desc = ""){
+      out <- FALSE
+      self$INFO(sprintf("Publish thumbnail '%s' to record '%s'...", url, id))
+      path = sprintf("/api/records/%s/processes/thumbnail-add?thumbnail_url=%s&thumbnail_desc=%s&process=thumbnail-add&id=%s", 
+                     id, url, desc, id) 
+      req <- GNUtils$POST(
+        url = self$getUrl(),
+        path = path,
+        token = private$getToken(), cookies = private$cookies,
+        user = private$user, 
+        pwd = private$getPwd(),
+        content = NULL, contentType = "application/json",
+        verbose = self$verbose.debug
+      )
+      if(status_code(req) == 204){
+        self$INFO("Successfully published thumbnail!")
+        response <- content(req)
+        out <- response
+      }else{
+        self$ERROR(sprintf("Error while publishing thumbnail - %s", message_for_status(status_code(req))))
+        self$ERROR(content(req))
+      }
+      return(out)
     }
-
+    
   )
                               
 )
