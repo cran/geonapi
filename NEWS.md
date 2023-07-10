@@ -1,10 +1,20 @@
+## [geonapi 0.7](https://github.com/eblondel/geonapi) | [![CRAN_Status_Badge](https://img.shields.io/badge/CRAN-published-blue.svg)](https://github.com/eblondel/geonapi)
+
+**Enhancements**
+
+* [#26](https://github.com/eblondel/geonapi/issues/26) Improve error handling for metadata upload
+
+**New features**
+
+* [#29](https://github.com/eblondel/geonapi/issues/29) Add DOI management methods (with DataCite)
+
 ## [geonapi 0.6-1](https://cran.r-project.org/package=geonapi) | [![CRAN_Status_Badge](https://img.shields.io/badge/CRAN-published-blue.svg)](https://cran.r-project.org/package=geonapi)
 
 **Corrections**
 
 * [#25](https://github.com/eblondel/geonapi/issues/25) Upgrade roxygen2 7.2.1 to fix html issues
 
-## [geonapi 0.6](https://cran.r-project.org/package=geonapi) | [![CRAN_Status_Badge](https://img.shields.io/badge/CRAN-published-blue.svg)](https://cran.r-project.org/package=geonapi)
+## [geonapi 0.6](https://cran.r-project.org/src/contrib/Archive/geonapi/geonapi_0.6.tar.gz) | [![CRAN_Status_Badge](https://img.shields.io/badge/CRAN-published-blue.svg)](https://cran.r-project.org/src/contrib/Archive/geonapi/geonapi_0.6.tar.gz)
 
 **New features**
 
