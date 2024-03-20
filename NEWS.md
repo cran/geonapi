@@ -1,6 +1,11 @@
-## [geonapi 0.7](https://github.com/eblondel/geonapi) | [![CRAN_Status_Badge](https://img.shields.io/badge/CRAN-published-blue.svg)](https://github.com/eblondel/geonapi)
+## [geonapi 0.7-1](https://github.com/eblondel/geonapi) | [![CRAN_Status_Badge](https://img.shields.io/badge/CRAN-published-blue.svg)](https://github.com/eblondel/geonapi)
 
 **Enhancements**
+
+* [#30](https://github.com/eblondel/geonapi/issues/30) Consolidate getTags with rbind.fill instead of rbind
+
+## [geonapi 0.7](https://github.com/eblondel/geonapi) | [![CRAN_Status_Badge](https://img.shields.io/badge/CRAN-published-blue.svg)](https://github.com/eblondel/geonapi)
+
 
 * [#26](https://github.com/eblondel/geonapi/issues/26) Improve error handling for metadata upload
 
@@ -8,7 +13,7 @@
 
 * [#29](https://github.com/eblondel/geonapi/issues/29) Add DOI management methods (with DataCite)
 
-## [geonapi 0.6-1](https://cran.r-project.org/package=geonapi) | [![CRAN_Status_Badge](https://img.shields.io/badge/CRAN-published-blue.svg)](https://cran.r-project.org/package=geonapi)
+## [geonapi 0.6-1](https://cran.r-project.org/src/contrib/Archive/geonapi/geonapi_0.6-1.tar.gz) | [![CRAN_Status_Badge](https://img.shields.io/badge/CRAN-published-blue.svg)](https://cran.r-project.org/src/contrib/Archive/geonapi/geonapi_0.6-1.tar.gz)
 
 **Corrections**
 
